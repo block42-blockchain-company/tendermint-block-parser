@@ -90,10 +90,10 @@ func (parser *Parser) Setup() {
 		return
 	}
 
-
 	fmt.Printf("Retrieved configuration. Starting sanity checks... \n")
+	fmt.Printf("Curren churn cycle: %v\n", currentChurn)
 
-	churnCycleCount, _ := parser.churnDB.CountDocuments(context.Background(), bson.D{{}})
+	churnCycleCount, _ := parser.churnDB.CountDocuments(context.Background(), bson.D{})
 	if churnCycleCount != (currentChurn.ChurnNumber) {
 		fmt.Printf("Churn cycle count: %d does not match current churn cycle number: %d\n",
 			churnCycleCount, currentChurn.ChurnNumber)
@@ -109,10 +109,10 @@ func (parser *Parser) Setup() {
 
 func (parser *Parser) PersistState() {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err := parser.configDB.ReplaceOne(ctx, bson.M{"_churn_number": parser.currentChurn.ChurnNumber}, parser.currentChurn)
+	_, err := parser.configDB.ReplaceOne(ctx, bson.M{}, parser.currentChurn)
 	if err != nil {
 		fmt.Printf("Error %s\n", err)
-		panic("Parser state could not be persisted! Drop DB and restart.")
+		panic("Parser state could not be persisted!")
 	}
 }
 
@@ -133,7 +133,8 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []types.BlockInfo) {
 		// Churn out validators
 		for _, validator := range blockInfo.ChurnInformation.ChurnedOut {
 			if err := parser.currentChurn.RemoveValidatorFromSet(validator); err != nil {
-				panic("Fatal: Validator churn out failure. Not in set!\n")
+				fmt.Printf("Churned out unregistered validator: %s\n", validator)
+				//panic("Fatal: Validator churn out failure. Not in set!\n")
 			}
 		}
 
@@ -251,12 +252,12 @@ func (parser *Parser) parseBlock(meta *tmTypes.BlockMeta, block *coretypes.Resul
 			blockInfo.BondReward, _ = strconv.ParseInt(endEvents[i].Attributes["bond_reward"], 10, 64)
 		} else if endEvents[i].Type == "UpdateNodeAccountStatus" {
 			blockInfo.IsChurnEvent = true
-			if endEvents[i].Attributes["Current:"] == "active" && endEvents[i].Attributes["Former:"] == "ready" {
+			if endEvents[i].Attributes["Current:"] == "active" {
 				blockInfo.ChurnInformation.ChurnedIn = append(blockInfo.ChurnInformation.ChurnedIn, endEvents[i].Attributes["Address"])
-			} else if endEvents[i].Attributes["Current:"] == "standby" && endEvents[i].Attributes["Former:"] == "active" {
+			} else if endEvents[i].Attributes["Former:"] == "active" {
 				blockInfo.ChurnInformation.ChurnedOut = append(blockInfo.ChurnInformation.ChurnedOut, endEvents[i].Attributes["Address"])
 			} else {
-				fmt.Printf("Something happend, which should not happen at all!")
+				fmt.Printf("Non-churn node status event: %s\n", endEvents[i].Attributes)
 			}
 		}
 	}
