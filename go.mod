@@ -1,4 +1,4 @@
-module github.com/DollyVolley/tmClient
+module github.com/block42-blockchain-company/tmClient
 
 go 1.13
 
