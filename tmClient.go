@@ -53,9 +53,6 @@ func main() {
 			dbSynced.Done()
 		}()
 
-		fmt.Printf("%d / %d  Progress: %d %%\n", thorchainParser.CursorHeight, currentBlockHeight,
-			thorchainParser.CursorHeight * 100 / currentBlockHeight)
-
 		thorchainParser.CursorHeight += batchSize
 	}
 }

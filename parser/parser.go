@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -43,7 +44,13 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 		return nil, fmt.Errorf("Error at Tendermint RPC parser instantiation: %w", err)
 	}
 
-	dbClient, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017/"))
+	var mongoDbURI = "mongodb://thornode_bot_mongodb:27017/"
+	if os.Getenv("TM_CLIENT_DEV") != "" {
+		fmt.Printf("Running in development environment\n")
+		mongoDbURI = "mongodb://localhost:27017/"
+	}
+
+	dbClient, err := mongo.NewClient(options.Client().ApplyURI(mongoDbURI))
 	if err != nil {
 		log.Fatal(err)
 	}

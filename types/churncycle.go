@@ -23,5 +23,5 @@ func (cc *ChurnCycle) RemoveValidatorFromSet(validatorAddress string) error {
 			return nil
 		}
 	}
-	return errors.New("Validator not in curren churn cycle")
+	return errors.New("Validator not in current churn cycle")
 }
