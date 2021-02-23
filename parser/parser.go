@@ -3,7 +3,9 @@ package parser
 import (
 	"context"
 	"fmt"
-	"github.com/block42-blockchain-company/tmClient/types"
+	"github.com/block42-blockchain-company/tmClient/churncycle"
+	"github.com/block42-blockchain-company/tmClient/events"
+	"github.com/block42-blockchain-company/tmClient/blockinfo"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/rpc/client"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -27,9 +29,9 @@ type Parser struct {
 	historyClient client.Client		// Fetch blocks
 	blockDB       *mongo.Collection
 	churnDB       *mongo.Collection
-	configDB 	  *mongo.Collection
+	configDB      *mongo.Collection
 	CursorHeight  int64
-	currentChurn  types.ChurnCycle // ongoing Churn Cycle
+	currentChurn  churncycle.ChurnCycle // ongoing Churn Cycle
 }
 
 
@@ -64,7 +66,7 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 	churnCycleCollection := dbClient.Database("thorchain").Collection("churns")
 	configCollection := dbClient.Database("thorchain").Collection("config")
 
-	defaultChurn := types.ChurnCycle{
+	defaultChurn := churncycle.ChurnCycle{
 		ChurnNumber: 0,
 		BlockHeightStart: 1,
 		BlockHeightEnd: 1,
@@ -86,7 +88,7 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 func (parser *Parser) Setup() {
 	currentChurnCursor := parser.configDB.FindOne(context.Background(), bson.D{})
 
-	var currentChurn types.ChurnCycle
+	var currentChurn churncycle.ChurnCycle
 	if err := currentChurnCursor.Decode(&currentChurn); err != nil {
 		if _, err := parser.configDB.InsertOne(context.Background(), parser.currentChurn); err != nil {
 			fmt.Printf("Error: %s\n",err)
@@ -124,7 +126,7 @@ func (parser *Parser) PersistState() {
 }
 
 
-func (parser *Parser) AddBlocksToChurnCycle(batch []types.BlockInfo) {
+func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 	for _, blockInfo := range batch {
 
 		// Same Churn Cycle
@@ -152,7 +154,7 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []types.BlockInfo) {
 
 		// Churn in validators
 		for _, validator := range blockInfo.ChurnInformation.ChurnedIn {
-			newValidator := &types.ChurnValidator{
+			newValidator := &churncycle.ChurnValidator{
 				Address: validator,
 				SlashPoints: 0,
 			}
@@ -164,7 +166,7 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []types.BlockInfo) {
 			panic("Could not store churn cycle. Aborting ...")
 		}
 
-		parser.currentChurn = types.ChurnCycle{
+		parser.currentChurn = churncycle.ChurnCycle{
 			ChurnNumber: parser.currentChurn.ChurnNumber + 1,
 			BlockHeightStart: blockInfo.BlockHeight,
 			BlockHeightEnd: blockInfo.BlockHeight,
@@ -178,8 +180,8 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []types.BlockInfo) {
 	parser.PersistState()
 }
 
-func (parser *Parser) FetchBlockBatch(from, to int64) ([]types.BlockInfo, error) {
-	var blockBatch = make([]types.BlockInfo, to-from+1)
+func (parser *Parser) FetchBlockBatch(from, to int64) ([]blockinfo.BlockInfo, error) {
+	var blockBatch = make([]blockinfo.BlockInfo, to-from+1)
 
 	info, err := parser.historyClient.BlockchainInfo(from, to)
 	if err != nil {
@@ -233,8 +235,8 @@ func (parser *Parser) fetchResults(from, to int64) ([]*coretypes.ResultBlockResu
 	return blocks, nil
 }
 
-func (parser *Parser) parseBlock(meta *tmTypes.BlockMeta, block *coretypes.ResultBlockResults) (types.BlockInfo, error) {
-	var blockInfo types.BlockInfo
+func (parser *Parser) parseBlock(meta *tmTypes.BlockMeta, block *coretypes.ResultBlockResults) (blockinfo.BlockInfo, error) {
+	var blockInfo blockinfo.BlockInfo
 	blockInfo.BlockHeight = meta.Header.Height
 	blockInfo.IsChurnEvent = false
 
@@ -252,7 +254,7 @@ func (parser *Parser) parseBlock(meta *tmTypes.BlockMeta, block *coretypes.Resul
 		blockEvents.BeginBlockEvents = append(blockEvents.BeginBlockEvents, beginEvents)
 	*/
 
-	endEvents := types.ConvertEvents(block.EndBlockEvents)
+	endEvents := events.ConvertEvents(block.EndBlockEvents)
 	for i := 0; i < len(endEvents); i++ {
 
 		if endEvents[i].Type == "rewards" {

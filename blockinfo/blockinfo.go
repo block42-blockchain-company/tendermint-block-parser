@@ -1,6 +1,6 @@
-package types
+package blockinfo
 
-// BlockInfo contains multiple event types and the height of a single block
+// BlockInfo contains multiple event blockinfo and the height of a single block
 type BlockInfo struct {
 	BlockHeight      int64            `bson:"_block_height"`
 	BondReward       int64            `bson:"bond_reward"`

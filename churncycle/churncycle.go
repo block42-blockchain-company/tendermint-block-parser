@@ -1,14 +1,14 @@
-package types
+package churncycle
 
 import "github.com/pkg/errors"
 
 // ChurnCycle is the condensed information of all blocks in that specific cycle including absolute state information
 type ChurnCycle struct {
-	ChurnNumber		  int64				`bson:"_churn_number"`
-	BlockHeightStart  int64				`bson:"block_height_start"`
-	BlockHeightEnd    int64				`bson:"block_height_end"`
-	ValidatorSet      []ChurnValidator	`bson:"validator_set"`
-	TotalAddedRewards int64				`bson:"total_added_rewards"`
+	ChurnNumber		  int64         `bson:"_churn_number"`
+	BlockHeightStart  int64            `bson:"block_height_start"`
+	BlockHeightEnd    int64            `bson:"block_height_end"`
+	ValidatorSet      []ChurnValidator `bson:"validator_set"`
+	TotalAddedRewards int64            `bson:"total_added_rewards"`
 }
 
 type ChurnValidator struct {

@@ -1,4 +1,4 @@
-package types
+package events
 
 import abcitypes "github.com/tendermint/tendermint/abci/types"
 
