@@ -136,19 +136,27 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 			continue
 		}
 
-		// New Churn Cycle
-		newValidatorSet := parser.currentChurn.ValidatorSet
+		// Persist old churn cycle
+		if _, err := parser.churnDB.InsertOne(context.Background(), parser.currentChurn); err != nil {
+			panic("Could not store churn cycle. Aborting ...")
+		}
+
+		// Advance churn cycle
+		parser.currentChurn.ChurnNumber++
+		parser.currentChurn.BlockHeightStart = blockInfo.BlockHeight
+		parser.currentChurn.BlockHeightEnd = blockInfo.BlockHeight
+		parser.currentChurn.TotalAddedRewards = blockInfo.BondReward
+
 
 		// Churn out validators
 		for _, validator := range blockInfo.ChurnInformation.ChurnedOut {
 			if err := parser.currentChurn.RemoveValidatorFromSet(validator); err != nil {
 				fmt.Printf("Churned out unregistered validator: %s\n", validator)
-				//panic("Fatal: Validator churn out failure. Not in set!\n")
 			}
 		}
 
 		// Reset validators slash points
-		for _, validator := range newValidatorSet {
+		for _, validator := range parser.currentChurn.ValidatorSet {
 			validator.SlashPoints = 0
 		}
 
@@ -158,20 +166,9 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 				Address: validator,
 				SlashPoints: 0,
 			}
-			newValidatorSet = append(newValidatorSet, *newValidator)
+			parser.currentChurn.ValidatorSet = append(parser.currentChurn.ValidatorSet, *newValidator)
 		}
 
-		if _, err := parser.churnDB.InsertOne(context.Background(), parser.currentChurn); err != nil {
-			panic("Could not store churn cycle. Aborting ...")
-		}
-
-		parser.currentChurn = churncycle.ChurnCycle{
-			ChurnNumber: parser.currentChurn.ChurnNumber + 1,
-			BlockHeightStart: blockInfo.BlockHeight,
-			BlockHeightEnd: blockInfo.BlockHeight,
-			TotalAddedRewards: blockInfo.BondReward,
-			ValidatorSet: newValidatorSet,
-		}
 		parser.PersistState()
 		fmt.Printf("Successfully cycled churn. Current churn number %d\n", parser.currentChurn.ChurnNumber)
 	}
