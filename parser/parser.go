@@ -158,9 +158,8 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 				Address: validator,
 				SlashPoints: 0,
 			}
-			newValidatorSet = append(parser.currentChurn.ValidatorSet, *newValidator)
+			newValidatorSet = append(newValidatorSet, *newValidator)
 		}
-
 
 		if _, err := parser.churnDB.InsertOne(context.Background(), parser.currentChurn); err != nil {
 			panic("Could not store churn cycle. Aborting ...")
