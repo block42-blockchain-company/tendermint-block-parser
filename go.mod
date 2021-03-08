@@ -1,4 +1,4 @@
-module github.com/block42-blockchain-company/tmClient
+module github.com/block42-blockchain-company/tendermintClient
 
 go 1.13
 

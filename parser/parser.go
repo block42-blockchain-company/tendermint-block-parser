@@ -46,7 +46,7 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 		return nil, fmt.Errorf("Error at Tendermint RPC parser instantiation: %w", err)
 	}
 
-	var mongoDbURI = "mongodb://thornode_bot_mongodb:42042/"
+	var mongoDbURI = "mongodb://thornode_bot_mongodb:27017/"
 	if os.Getenv("TM_CLIENT_DEV") != "" {
 		fmt.Printf("Running in development environment\n")
 		mongoDbURI = "mongodb://localhost:42042/"
