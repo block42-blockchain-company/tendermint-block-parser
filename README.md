@@ -7,9 +7,10 @@ Per default, it will connect to a MongoDB instance behind ``mongodb://thornode_b
 If ``TM_CLIENT_DEV`` is passed, it will connect to ``mongodb://localhost:27017``.
 
 This project is part of the [Thorchain Telegram Bot](https://github.com/block42-blockchain-company/thornode-telegram-bot).
+It is provided as a docker image on [DockerHub](https://hub.docker.com/repository/docker/block42blockchaincompany/thorchain-parser/general).
 The Tendermint client used is still on version 0.33.4, which uses the amino protocol (with version 0.34.4  protobuf was introduced).
 
-To build it run ``go build ./tmClient.go``.
+To build it run ``go build ./tendermintClient.go``.
 
-To run it type ``./tmClient``
+To run it type ``./tendermintClient``
 
