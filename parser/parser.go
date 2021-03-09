@@ -46,8 +46,7 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 	}
 
 	var mongoDbURI = "mongodb://thornode-bot-mongodb:27017/"
-	if os.Getenv("TM_CLIENT_DEV") != "" {
-		fmt.Printf("Running in development environment\n")
+	if os.Getenv("NATIVE_DEPLOYMENT") != "" {
 		mongoDbURI = "mongodb://localhost:27017/"
 	}
 
