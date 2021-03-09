@@ -1,4 +1,4 @@
-module github.com/block42-blockchain-company/tendermintClient
+module github.com/block42-blockchain-company/tendermint-block-parser
 
 go 1.13
 

@@ -3,9 +3,16 @@ package parser
 import (
 	"context"
 	"fmt"
-	"github.com/block42-blockchain-company/tmClient/churncycle"
-	"github.com/block42-blockchain-company/tmClient/events"
-	"github.com/block42-blockchain-company/tmClient/blockinfo"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/block42-blockchain-company/tendermint-block-parser/blockinfo"
+	"github.com/block42-blockchain-company/tendermint-block-parser/churncycle"
+	"github.com/block42-blockchain-company/tendermint-block-parser/events"
 	"github.com/pkg/errors"
 	"github.com/tendermint/tendermint/rpc/client"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -14,26 +21,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"time"
 )
-
 
 // Parser for stuff
 type Parser struct {
-	statusClient  client.Client     // Current block height
-	historyClient client.Client		// Fetch blocks
+	statusClient  client.Client // Current block height
+	historyClient client.Client // Fetch blocks
 	blockDB       *mongo.Collection
 	churnDB       *mongo.Collection
 	configDB      *mongo.Collection
 	CursorHeight  int64
 	currentChurn  churncycle.ChurnCycle // ongoing Churn Cycle
 }
-
 
 func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 	path := endpoint.Path
@@ -67,10 +66,10 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 	configCollection := dbClient.Database("thorchain").Collection("config")
 
 	defaultChurn := churncycle.ChurnCycle{
-		ChurnNumber: 0,
-		BlockHeightStart: 1,
-		BlockHeightEnd: 1,
-		ValidatorSet: nil,
+		ChurnNumber:       0,
+		BlockHeightStart:  1,
+		BlockHeightEnd:    1,
+		ValidatorSet:      nil,
 		TotalAddedRewards: 0,
 	}
 
@@ -80,10 +79,9 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 		historyClient: tendermintClient,
 		statusClient:  tendermintClient,
 		churnDB:       churnCycleCollection,
-		configDB: 	   configCollection,
+		configDB:      configCollection,
 	}, nil
 }
-
 
 func (parser *Parser) Setup() {
 	currentChurnCursor := parser.configDB.FindOne(context.Background(), bson.D{})
@@ -91,7 +89,7 @@ func (parser *Parser) Setup() {
 	var currentChurn churncycle.ChurnCycle
 	if err := currentChurnCursor.Decode(&currentChurn); err != nil {
 		if _, err := parser.configDB.InsertOne(context.Background(), parser.currentChurn); err != nil {
-			fmt.Printf("Error: %s\n",err)
+			fmt.Printf("Error: %s\n", err)
 
 			panic("Could not store initial churn cycle. Aborting ...")
 		}
@@ -112,9 +110,8 @@ func (parser *Parser) Setup() {
 	parser.currentChurn = currentChurn
 	parser.CursorHeight = currentChurn.BlockHeightEnd + 1
 	fmt.Printf("Setup parser finished. Start parsing blocks from %d in churn cycle %d\n",
-			   parser.CursorHeight, churnCycleCount)
+		parser.CursorHeight, churnCycleCount)
 }
-
 
 func (parser *Parser) PersistState() {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
@@ -124,7 +121,6 @@ func (parser *Parser) PersistState() {
 		panic("Parser state could not be persisted!")
 	}
 }
-
 
 func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 	for _, blockInfo := range batch {
@@ -147,7 +143,6 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 		parser.currentChurn.BlockHeightEnd = blockInfo.BlockHeight
 		parser.currentChurn.TotalAddedRewards = blockInfo.BondReward
 
-
 		// Churn out validators
 		for _, validator := range blockInfo.ChurnInformation.ChurnedOut {
 			if err := parser.currentChurn.RemoveValidatorFromSet(validator); err != nil {
@@ -163,7 +158,7 @@ func (parser *Parser) AddBlocksToChurnCycle(batch []blockinfo.BlockInfo) {
 		// Churn in validators
 		for _, validator := range blockInfo.ChurnInformation.ChurnedIn {
 			newValidator := &churncycle.ChurnValidator{
-				Address: validator,
+				Address:     validator,
 				SlashPoints: 0,
 			}
 			parser.currentChurn.ValidatorSet = append(parser.currentChurn.ValidatorSet, *newValidator)
@@ -237,17 +232,17 @@ func (parser *Parser) parseBlock(meta *tmTypes.BlockMeta, block *coretypes.Resul
 	blockInfo.IsChurnEvent = false
 
 	/*
-	Begin block events
-	TX events
-	Currently not used but might as well leave it in for completeness
+		Begin block events
+		TX events
+		Currently not used but might as well leave it in for completeness
 
-		for _, tx := range block.TxsResults {
-			event := convertEvents(tx.Events)
-			fmt.Printf("%s ", event)
-			blockEvents.TransactionEvents = append(blockEvents.TransactionEvents, event)
-		}
-		beginEvents := convertEvents(block.BeginBlockEvents)
-		blockEvents.BeginBlockEvents = append(blockEvents.BeginBlockEvents, beginEvents)
+			for _, tx := range block.TxsResults {
+				event := convertEvents(tx.Events)
+				fmt.Printf("%s ", event)
+				blockEvents.TransactionEvents = append(blockEvents.TransactionEvents, event)
+			}
+			beginEvents := convertEvents(block.BeginBlockEvents)
+			blockEvents.BeginBlockEvents = append(blockEvents.BeginBlockEvents, beginEvents)
 	*/
 
 	endEvents := events.ConvertEvents(block.EndBlockEvents)

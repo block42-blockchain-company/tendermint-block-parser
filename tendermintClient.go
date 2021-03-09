@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/block42-blockchain-company/tmClient/parser"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/block42-blockchain-company/tendermint-block-parser/parser"
 )
 
 const (
 	maxBatchSizePerRequest = 20
 	defaultNodeIP          = "138.68.125.107" // random thorchain node ip
 )
-
 
 func main() {
 	var nodeURL *url.URL
