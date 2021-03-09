@@ -47,7 +47,10 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 
 	var mongoDbURI = "mongodb://thornode-bot-mongodb:27017/"
 	if os.Getenv("NATIVE_DEPLOYMENT") != "" {
+		fmt.Println("Native Deployment")
 		mongoDbURI = "mongodb://localhost:27017/"
+	} else {
+		fmt.Println("Docker Deployment")
 	}
 
 	dbClient, err := mongo.NewClient(options.Client().ApplyURI(mongoDbURI))

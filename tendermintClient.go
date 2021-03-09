@@ -13,13 +13,15 @@ import (
 const (
 	maxBatchSizePerRequest = 20
 	defaultNodeIP          = "138.68.125.107" // random thorchain node ip
+	version                = 1.0
 )
 
 func main() {
+	fmt.Printf("Starting Tendermint Client v%f\n", version)
 	var nodeURL *url.URL
 	var sb strings.Builder
 	sb.WriteString("http://")
-	sb.WriteString(defaultNodeIP) // TODO Inject nodeIP, otherwise it's ddos when 200 bots are active
+	sb.WriteString(defaultNodeIP)
 	sb.WriteString(":27147/websocket")
 	nodeURL, _ = url.Parse(sb.String())
 	timeout := 100 * time.Second
