@@ -45,12 +45,16 @@ func NewParser(endpoint *url.URL, timeout time.Duration) (*Parser, error) {
 		return nil, fmt.Errorf("Error at Tendermint RPC parser instantiation: %w", err)
 	}
 
-	var mongoDbURI = "mongodb://thornode-bot-mongodb:27017/"
+	var mongoDbURI = "mongodb://thornode-bot-chaosnet-mongodb:27017/"
 	if os.Getenv("NATIVE_DEPLOYMENT") != "" {
 		fmt.Println("Native Deployment")
 		mongoDbURI = "mongodb://localhost:27017/"
 	} else {
 		fmt.Println("Docker Deployment")
+		if os.Getenv("TESTNET") == "True" {
+			mongoDbURI = "mongodb://thornode-bot-testnet-mongodb:27017/"
+			fmt.Println("Connecting to Testnet DB")
+		}
 	}
 
 	dbClient, err := mongo.NewClient(options.Client().ApplyURI(mongoDbURI))

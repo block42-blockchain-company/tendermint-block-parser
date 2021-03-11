@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -18,12 +19,20 @@ const (
 
 func main() {
 	fmt.Printf("Starting Tendermint Client v%f\n", version)
+
 	var nodeURL *url.URL
 	var sb strings.Builder
 	sb.WriteString("http://")
 	sb.WriteString(defaultNodeIP)
-	sb.WriteString(":27147/websocket")
+	port := ":27147/"
+	if os.Getenv("TESTNET") == "True" {
+		fmt.Println("Use Tendermint Testnet Port")
+		port = ":26657/"
+	}
+	sb.WriteString(port)
+	sb.WriteString("websocket")
 	nodeURL, _ = url.Parse(sb.String())
+
 	timeout := 100 * time.Second
 	thorchainParser, _ := parser.NewParser(nodeURL, timeout)
 
